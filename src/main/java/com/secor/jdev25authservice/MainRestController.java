@@ -45,6 +45,43 @@ public class MainRestController {
         return ResponseEntity.ok("New Signup Succesful for "+credential.getUsername());
     }
 
+    @GetMapping("/login")
+    public ResponseEntity<String> login(@RequestBody Credential credential)
+    {
+        if(credentialRepository.findById(credential.getUsername()).isPresent())
+        {
+            if(credentialRepository.findById(credential.getUsername()).get().getPassword().equals(credential.getPassword()))
+            {
+                log.info("LOGIN SUCCESSFUL FOR USER: "+credential.getUsername());
+                String token = new Random().nextInt()+credential.getUsername();
+                redisTemplate.opsForValue().set(token,"VALID");
+                return ResponseEntity.ok().header("Authorization",token).body("Login Successful for "+credential.getUsername());
+            }
+            else
+            {
+                return ResponseEntity.badRequest().body("Login Failed | INCORRECT PASSWORD");
+            }
+        }
+        else
+        {
+            return ResponseEntity.badRequest().body("Login Failed | INVALID USERNAME");
+        }
+
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<String> validateToken(@RequestHeader("Authorization") String token)
+    {
+        if(redisTemplate.opsForValue().get(token) == null)
+        {
+            return ResponseEntity.badRequest().body("INVALID TOKEN");
+        }
+        else
+        {
+            return ResponseEntity.ok("VALID TOKEN");
+        }
+    }
+
 
     @GetMapping("/user/{username}")
     public ResponseEntity<?> user(@PathVariable("username") String username,
